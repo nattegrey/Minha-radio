@@ -1,0 +1,1647 @@
+```html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AetherWave Hi-Fi Virtual Radio</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts para estilo vintage & display digital -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Chakra Petch', 'sans-serif'],
+            mono: ['"Share Tech Mono"', 'monospace'],
+          },
+          colors: {
+            vintage: {
+              wood: '#2b1d14',
+              aluminum: '#1a1f24',
+              panel: '#121519',
+              amber: '#ffb238',
+              amberGlow: 'rgba(255, 178, 56, 0.45)',
+              greenGlow: 'rgba(52, 211, 153, 0.4)',
+              vuMeter: '#e6dfc8'
+            }
+          },
+          boxShadow: {
+            'knob': 'inset 0 2px 4px rgba(255,255,255,0.2), 0 8px 16px rgba(0,0,0,0.6)',
+            'display-glow': '0 0 25px rgba(255, 178, 56, 0.25)',
+            'chassis': 'inset 0 1px 1px rgba(255,255,255,0.1), 0 20px 40px -15px rgba(0,0,0,0.8)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Estilos específicos de texturas de alumínio e mostradores analógicos */
+    .brushed-metal {
+      background: radial-gradient(ellipse at 50% 0%, #2a313a 0%, #171a1f 65%, #0e1013 100%);
+    }
+    .tuner-glass {
+      background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.5) 100%);
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.8), inset 0 0 15px rgba(0,0,0,0.6);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #4b5563;
+    }
+    .vu-needle {
+      transform-origin: bottom center;
+      transition: transform 0.06s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+    /* Estilização suave para sliders */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 18px;
+      width: 18px;
+      border-radius: 50%;
+      background: #ffb238;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(255, 178, 56, 0.8);
+      margin-top: -6px;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 6px;
+      background: #272d36;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="bg-[#0b0d10] text-gray-200 min-h-screen flex flex-col justify-between selection:bg-amber-500 selection:text-black">
+
+  <!-- Cabeçalho do App -->
+  <header class="border-b border-gray-800 bg-[#101317]/80 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3 min-w-0">
+        <div class="w-10 h-10 shrink-0 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg shadow-amber-500/20">
+          <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2zM12 6a2 2 0 100 4 2 2 0 000-4zm0 8a1 1 0 100 2 1 1 0 000-2z"></path>
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-base sm:text-lg font-bold tracking-wider text-white font-display flex items-center flex-wrap gap-1.5">
+            <span>AETHERWAVE</span>
+            <span class="text-amber-500 text-[10px] sm:text-xs px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">HI-FI STEREO</span>
+          </h1>
+          <p class="text-xs text-gray-400 truncate">Receptor & Sintetizador de Rádio Virtual para Edge & Chrome</p>
+        </div>
+      </div>
+
+      <!-- Status e Indicadores -->
+      <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
+        <div class="hidden sm:flex items-center space-x-2 bg-black/40 px-3 py-1.5 rounded-full border border-gray-800 text-xs">
+          <span id="powerLed" class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm shadow-red-500"></span>
+          <span id="powerText" class="font-mono text-gray-400">STANDBY</span>
+        </div>
+        <button id="openPublishModalBtn" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[#1d232b] hover:bg-gray-700 text-amber-400 border border-amber-500/40 transition-all flex items-center gap-1.5" title="Baixar ou copiar index.html">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+          </svg>
+          <span>Exportar index.html</span>
+        </button>
+        <button id="toggleAudioEngineBtn" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider bg-amber-500 hover:bg-amber-400 text-black shadow-md shadow-amber-500/30 transition-all flex items-center gap-1.5">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+          <span id="powerBtnLabel">Ligar Receptor</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Corpo Principal da Rádio -->
+  <main class="flex-grow flex items-center justify-center p-3 sm:p-6 md:p-8">
+    <div class="w-full max-w-5xl bg-[#14181d] rounded-2xl p-4 sm:p-7 border border-gray-800/80 shadow-chassis brushed-metal">
+      
+      <!-- Seção Superior: Mostrador Digital & Medidores VU -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6">
+        
+        <!-- Painel Display LCD/VFD Retro-Futurista -->
+        <div class="lg:col-span-8 bg-[#090b0e] rounded-xl p-4 sm:p-5 border border-amber-500/20 shadow-display-glow relative overflow-hidden flex flex-col justify-between">
+          <!-- Textura de scanlines -->
+          <div class="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.35)_50%)] bg-[length:100%_4px] opacity-40"></div>
+
+          <!-- Topo do Display -->
+          <div class="flex items-center justify-between border-b border-amber-500/20 pb-2 mb-3 relative z-10 text-xs font-mono text-amber-500/80">
+            <div class="flex items-center space-x-3">
+              <span class="flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="signalQuality">SIGNAL: 98%</span>
+              </span>
+              <span class="hidden sm:inline">|</span>
+              <span id="bandIndicator" class="text-amber-400 font-bold">FM STEREO</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span id="clockDisplay">12:00:00</span>
+              <span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded text-[10px]" id="audioBitrate">128 KBPS</span>
+            </div>
+          </div>
+
+          <!-- Centro do Display: Frequência Principal e Título -->
+          <div class="relative z-10 py-2 sm:py-4">
+            <div class="flex items-baseline justify-between flex-wrap gap-2">
+              <div class="flex items-baseline space-x-2">
+                <span id="mainFrequencyDisplay" class="font-display font-bold text-4xl sm:text-6xl text-amber-400 tracking-wider drop-shadow-[0_0_12px_rgba(255,178,56,0.6)]">
+                  89.1
+                </span>
+                <span class="text-amber-500/80 font-mono text-sm sm:text-base">MHz</span>
+              </div>
+              <div class="text-right">
+                <div id="stationTag" class="text-xs uppercase font-mono tracking-widest text-emerald-400">EM SINTONIA</div>
+                <div id="stationNameDisplay" class="text-base sm:text-xl font-bold font-display text-white max-w-xs truncate">
+                  89 FM A Rádio Rock
+                </div>
+              </div>
+            </div>
+
+            <!-- Informações da Faixa / Status -->
+            <div class="mt-2 text-xs font-mono text-gray-400 flex items-center justify-between">
+              <div class="truncate pr-2">
+                <span class="text-amber-500">PROGRAMA:</span> 
+                <span id="streamStatusText">Pronto para sintonizar...</span>
+              </div>
+              <div id="stereoMode" class="text-emerald-400 font-semibold uppercase text-[11px] shrink-0">STEREO-DSP</div>
+            </div>
+          </div>
+
+          <!-- Rodapé do Display: Visualizador Canvas em tempo real -->
+          <div class="relative z-10 mt-3 pt-2 border-t border-amber-500/15">
+            <div class="flex justify-between items-center mb-1 text-[11px] font-mono text-amber-500/70">
+              <span>ESPECTRO DE ÁUDIO ANALISADOR</span>
+              <div class="flex gap-2">
+                <button id="visModeBars" class="hover:text-amber-300 font-bold text-amber-400">BARRAS</button>
+                <span>/</span>
+                <button id="visModeWave" class="hover:text-amber-300 text-amber-500/50">ONDA</button>
+              </div>
+            </div>
+            <canvas id="visualizerCanvas" class="w-full h-16 sm:h-20 rounded bg-black/50 block"></canvas>
+          </div>
+        </div>
+
+        <!-- Painel Lateral: Medidores Analógicos VU Duplos (L / R) -->
+        <div class="lg:col-span-4 bg-[#101317] rounded-xl p-4 border border-gray-800 flex flex-col justify-between shadow-inner">
+          <div class="text-center font-mono text-xs text-gray-400 uppercase tracking-widest border-b border-gray-800 pb-2">
+            Nível de Saída Master (VU)
+          </div>
+
+          <!-- VU Esquerdo e Direito -->
+          <div class="grid grid-cols-2 gap-3 my-3">
+            <!-- VU Left -->
+            <div class="bg-[#e9e4d4] rounded-lg p-2.5 border border-stone-600 shadow-inner relative overflow-hidden h-36 flex flex-col justify-between text-black">
+              <div class="flex justify-between items-center text-[9px] font-mono text-stone-700 font-bold">
+                <span>-20</span>
+                <span>-10</span>
+                <span>-3</span>
+                <span>0</span>
+                <span class="text-red-600">+3</span>
+              </div>
+              <svg class="w-full h-12 stroke-stone-600" viewBox="0 0 100 40" fill="none">
+                <path d="M 10 35 A 45 45 0 0 1 75 15" stroke-width="1.5" stroke="#444"/>
+                <path d="M 75 15 A 45 45 0 0 1 90 22" stroke-width="2.5" stroke="#dc2626"/>
+              </svg>
+              <div class="relative w-full h-10 flex justify-center items-end">
+                <div id="vuNeedleL" class="vu-needle absolute bottom-0 w-0.5 h-16 bg-red-600 shadow-sm" style="transform: rotate(-35deg);"></div>
+                <div class="w-3 h-3 rounded-full bg-stone-800 z-10 border border-stone-500"></div>
+              </div>
+              <div class="text-center font-bold text-[10px] font-mono text-stone-800 tracking-wider">CANAL L</div>
+            </div>
+
+            <!-- VU Right -->
+            <div class="bg-[#e9e4d4] rounded-lg p-2.5 border border-stone-600 shadow-inner relative overflow-hidden h-36 flex flex-col justify-between text-black">
+              <div class="flex justify-between items-center text-[9px] font-mono text-stone-700 font-bold">
+                <span>-20</span>
+                <span>-10</span>
+                <span>-3</span>
+                <span>0</span>
+                <span class="text-red-600">+3</span>
+              </div>
+              <svg class="w-full h-12 stroke-stone-600" viewBox="0 0 100 40" fill="none">
+                <path d="M 10 35 A 45 45 0 0 1 75 15" stroke-width="1.5" stroke="#444"/>
+                <path d="M 75 15 A 45 45 0 0 1 90 22" stroke-width="2.5" stroke="#dc2626"/>
+              </svg>
+              <div class="relative w-full h-10 flex justify-center items-end">
+                <div id="vuNeedleR" class="vu-needle absolute bottom-0 w-0.5 h-16 bg-red-600 shadow-sm" style="transform: rotate(-35deg);"></div>
+                <div class="w-3 h-3 rounded-full bg-stone-800 z-10 border border-stone-500"></div>
+              </div>
+              <div class="text-center font-bold text-[10px] font-mono text-stone-800 tracking-wider">CANAL R</div>
+            </div>
+          </div>
+
+          <!-- Modos de Filtro Vintage / DSP -->
+          <div class="bg-black/40 rounded-lg p-2.5 border border-gray-800/80">
+            <span class="text-[10px] font-mono text-gray-400 block mb-1 uppercase tracking-wider">Emulação Acústica</span>
+            <div class="grid grid-cols-3 gap-1">
+              <button id="filterModern" class="preset-btn px-2 py-1 text-[11px] rounded bg-amber-500/20 text-amber-400 border border-amber-500/40 font-mono transition">Hi-Fi</button>
+              <button id="filterTube" class="preset-btn px-2 py-1 text-[11px] rounded bg-gray-800 hover:bg-gray-700 text-gray-300 font-mono transition">Válvula</button>
+              <button id="filterVinyl" class="preset-btn px-2 py-1 text-[11px] rounded bg-gray-800 hover:bg-gray-700 text-gray-300 font-mono transition">Vinil</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Seção do Meio: Escala do Sintonizador Analógico com ponteiro iluminado -->
+      <div class="mb-6 bg-black/60 rounded-xl p-4 border border-gray-800 relative">
+        <div class="flex justify-between items-center mb-2 px-1">
+          <span class="text-xs font-mono text-gray-400 flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd"></path>
+            </svg>
+            DIAL ANALÓGICO FM (88.0 — 108.0 MHz)
+          </span>
+          <span class="text-[11px] font-mono text-amber-500/80">ARRASTE PARA SINTONIZAR</span>
+        </div>
+
+        <!-- Janela de Vidro iluminada da Escala -->
+        <div id="tunerTrack" class="tuner-glass h-16 sm:h-20 rounded-lg relative overflow-hidden cursor-ew-resize select-none border border-amber-500/20">
+          
+          <!-- Graduação de frequências e marcas -->
+          <div class="absolute inset-0 flex justify-between items-center px-4 font-mono text-[11px] sm:text-xs text-amber-300/80 pointer-events-none z-10">
+            <span>88</span>
+            <span class="opacity-50">.</span>
+            <span>92</span>
+            <span class="opacity-50">.</span>
+            <span>96</span>
+            <span class="opacity-50">.</span>
+            <span>100</span>
+            <span class="opacity-50">.</span>
+            <span>104</span>
+            <span class="opacity-50">.</span>
+            <span>108</span>
+          </div>
+
+          <!-- Riscos de graduação fina -->
+          <div class="absolute inset-x-0 bottom-2 flex justify-between px-4 opacity-40 pointer-events-none">
+            <div class="h-4 w-0.5 bg-amber-400"></div>
+            <div class="h-2 w-0.5 bg-amber-400"></div>
+            <div class="h-3 w-0.5 bg-amber-400"></div>
+            <div class="h-2 w-0.5 bg-amber-400"></div>
+            <div class="h-4 w-0.5 bg-amber-400"></div>
+            <div class="h-2 w-0.5 bg-amber-400"></div>
+            <div class="h-3 w-0.5 bg-amber-400"></div>
+            <div class="h-2 w-0.5 bg-amber-400"></div>
+            <div class="h-4 w-0.5 bg-amber-400"></div>
+            <div class="h-2 w-0.5 bg-amber-400"></div>
+            <div class="h-3 w-0.5 bg-amber-400"></div>
+            <div class="h-2 w-0.5 bg-amber-400"></div>
+            <div class="h-4 w-0.5 bg-amber-400"></div>
+            <div class="h-2 w-0.5 bg-amber-400"></div>
+            <div class="h-3 w-0.5 bg-amber-400"></div>
+            <div class="h-2 w-0.5 bg-amber-400"></div>
+            <div class="h-4 w-0.5 bg-amber-400"></div>
+          </div>
+
+          <!-- Marcadores de Estações Salvas na Régua -->
+          <div id="stationPointersContainer" class="absolute inset-0 pointer-events-none"></div>
+
+          <!-- Ponteiro Vermelho Iluminado da Sintonizadora -->
+          <div id="tunerNeedle" class="absolute top-0 bottom-0 w-1 bg-red-500 shadow-[0_0_10px_#ef4444] transition-[left] duration-75 pointer-events-none z-20" style="left: 5.5%;">
+            <div class="w-3 h-3 bg-red-600 rounded-full -ml-1 -top-1 absolute shadow-md"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seção de Controles Físicos: Botões, Equalizador e Presets -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
+        
+        <!-- Presets Numéricos Rápidos (Bancos 1 a 6) -->
+        <div class="md:col-span-5 bg-black/40 rounded-xl p-3 border border-gray-800">
+          <div class="text-[11px] font-mono text-gray-400 mb-2 uppercase tracking-wider flex justify-between">
+            <span>MEMÓRIA DE ESTAÇÕES</span>
+            <span class="text-amber-500/70">PRESETS (1-6)</span>
+          </div>
+          <div class="grid grid-cols-6 gap-1.5" id="presetsButtonContainer">
+            <!-- Gerado via JavaScript -->
+          </div>
+        </div>
+
+        <!-- Botões de Transporte de Áudio -->
+        <div class="md:col-span-3 flex items-center justify-center space-x-3">
+          <button id="btnPrevStation" title="Estação Anterior" class="w-12 h-12 rounded-xl bg-[#232931] hover:bg-[#2c333d] active:scale-95 text-white flex items-center justify-center border border-gray-700 shadow-md transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+            </svg>
+          </button>
+
+          <button id="btnPlayPause" title="Tocar / Pausar" class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 hover:from-amber-500 hover:to-amber-300 active:scale-95 text-black flex items-center justify-center shadow-lg shadow-amber-500/30 transition">
+            <svg id="playIcon" class="w-7 h-7 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"></path>
+            </svg>
+            <svg id="pauseIcon" class="w-7 h-7 hidden" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path>
+            </svg>
+          </button>
+
+          <button id="btnNextStation" title="Próxima Estação" class="w-12 h-12 rounded-xl bg-[#232931] hover:bg-[#2c333d] active:scale-95 text-white flex items-center justify-center border border-gray-700 shadow-md transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Sliders de Volume e Ruído de Estática -->
+        <div class="md:col-span-4 bg-black/40 rounded-xl p-3 border border-gray-800 space-y-2">
+          <!-- Master Volume -->
+          <div class="flex items-center space-x-3">
+            <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+            </svg>
+            <div class="flex-grow">
+              <div class="flex justify-between text-[10px] font-mono text-gray-400">
+                <span>VOLUME</span>
+                <span id="volumeValueLabel">75%</span>
+              </div>
+              <input type="range" id="masterVolumeSlider" min="0" max="1" step="0.01" value="0.75" class="w-full">
+            </div>
+          </div>
+
+          <!-- Estática Analógica (White Noise) ao sintonizar -->
+          <div class="flex items-center space-x-3">
+            <svg class="w-4 h-4 text-amber-500/80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+            <div class="flex-grow">
+              <div class="flex justify-between text-[10px] font-mono text-gray-400">
+                <span>ESTÁTICA / RUÍDO DE FUNDO</span>
+                <span id="staticNoiseLabel">20%</span>
+              </div>
+              <input type="range" id="staticNoiseSlider" min="0" max="1" step="0.05" value="0.2" class="w-full">
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Seção Inferior: Lista de Emissoras Globais & URL Personalizada -->
+      <div class="mt-6 pt-5 border-t border-gray-800 grid grid-cols-1 md:grid-cols-12 gap-5">
+        
+        <!-- Lista de Estações Selecionáveis + Filtros Brasil / Internacional -->
+        <div class="md:col-span-8 flex flex-col justify-between">
+          <div>
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <h3 class="text-xs font-mono font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                <span>ESTAÇÕES NA BANDA</span>
+                <span class="text-[10px] px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/30 rounded text-amber-400" id="stationsCount">15 canais</span>
+              </h3>
+
+              <!-- Botões de Filtro: Todas / Brasil / Internacional -->
+              <div class="flex items-center gap-1 bg-black/50 p-1 rounded-lg border border-gray-800">
+                <button id="filterRegionAll" class="px-2.5 py-1 rounded text-[11px] font-mono font-bold bg-amber-500 text-black transition">Todas</button>
+                <button id="filterRegionBR" class="px-2.5 py-1 rounded text-[11px] font-mono text-gray-300 hover:text-white transition">🇧🇷 Brasil FM/Web</button>
+                <button id="filterRegionINT" class="px-2.5 py-1 rounded text-[11px] font-mono text-gray-300 hover:text-white transition">🌍 Internacionais</button>
+              </div>
+            </div>
+            
+            <div id="stationsListContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+              <!-- Preenchido via Javascript -->
+            </div>
+          </div>
+
+          <!-- Buscador Global de Rádios Online (API Radio Browser) -->
+          <div class="mt-3 pt-3 border-t border-gray-800/80">
+            <div class="flex flex-col sm:flex-row gap-2">
+              <div class="relative flex-grow">
+                <input type="text" id="radioSearchInput" placeholder="Buscar mais rádios FM/Web (ex: CBN, Gaúcha, MPB, Jazz, Londres)..." class="w-full bg-[#101317] text-xs px-3 py-2 rounded-lg border border-gray-700 focus:outline-none focus:border-amber-500 font-sans text-gray-200">
+              </div>
+              <select id="radioSearchCountry" class="bg-[#101317] text-xs px-2.5 py-2 rounded-lg border border-gray-700 text-gray-300 font-mono focus:outline-none focus:border-amber-500">
+                <option value="BR">🇧🇷 Brasil</option>
+                <option value="">🌍 Mundo Todo</option>
+                <option value="US">🇺🇸 EUA</option>
+                <option value="PT">🇵🇹 Portugal</option>
+                <option value="GB">🇬🇧 Reino Unido</option>
+                <option value="FR">🇫🇷 França</option>
+                <option value="JP">🇯🇵 Japão</option>
+              </select>
+              <button id="radioSearchBtn" class="px-4 py-2 bg-amber-500/20 hover:bg-amber-500 hover:text-black text-amber-400 border border-amber-500/40 rounded-lg text-xs font-mono font-bold transition shrink-0">
+                Buscar Rádios
+              </button>
+            </div>
+            <!-- Resultados da pesquisa -->
+            <div id="searchResultsBox" class="hidden mt-2 bg-black/60 rounded-lg p-2 border border-gray-800 max-h-40 overflow-y-auto custom-scrollbar space-y-1"></div>
+          </div>
+        </div>
+
+        <!-- Adicionar Fluxo Próprio (Custom Stream) -->
+        <div class="md:col-span-4 bg-black/40 rounded-xl p-3.5 border border-gray-800 flex flex-col justify-between">
+          <div>
+            <h3 class="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider mb-1">
+              ADICIONAR STREAM PERSONALIZADO
+            </h3>
+            <p class="text-[11px] text-gray-400 mb-2.5">
+              Insira o link direto de áudio (MP3, AAC, M3U8, Icecast, Shoutcast).
+            </p>
+            <div class="space-y-2">
+              <input type="text" id="customNameInput" placeholder="Nome da Rádio (ex: Rádio Cidade)" class="w-full bg-[#1b2026] text-xs px-3 py-1.5 rounded border border-gray-700 focus:outline-none focus:border-amber-500 font-sans text-gray-200">
+              <input type="url" id="customUrlInput" placeholder="https://stream.exemplo.com/live" class="w-full bg-[#1b2026] text-xs px-3 py-1.5 rounded border border-gray-700 focus:outline-none focus:border-amber-500 font-mono text-gray-200">
+              <select id="customRegionInput" class="w-full bg-[#1b2026] text-xs px-3 py-1.5 rounded border border-gray-700 text-gray-300 focus:outline-none focus:border-amber-500 font-sans">
+                <option value="BR">🇧🇷 Estação do Brasil</option>
+                <option value="INT">🌍 Estação Internacional</option>
+              </select>
+            </div>
+          </div>
+          <button id="addCustomStreamBtn" class="mt-3 w-full bg-[#272f3a] hover:bg-amber-500 hover:text-black text-gray-200 text-xs font-semibold py-2 rounded-lg border border-gray-700 transition">
+            + Sintonizar & Salvar Stream
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Oculto de Exportação e Publicação do index.html -->
+  <div id="publishModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div class="bg-[#14181d] border border-amber-500/40 rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-base font-bold text-white font-display tracking-wide">SALVAR E PUBLICAR O ARQUIVO INDEX.HTML</h2>
+            <p class="text-xs text-gray-400">Baixe diretamente ou copie o código completo com 1 clique</p>
+          </div>
+        </div>
+        <button id="closePublishModalBtn" class="text-gray-400 hover:text-white p-1.5 rounded-lg bg-gray-800/60 hover:bg-gray-700 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-4 space-y-3">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <span class="text-[11px] font-mono uppercase text-amber-400 font-bold">ARQUIVO PRONTO PARA HOSPEDAGEM</span>
+            <h3 class="text-sm font-bold text-white">Obtenha seu <code class="text-amber-300">index.html</code></h3>
+            <p class="text-xs text-gray-300 mt-0.5">Use o botão verde para copiar 100% do código caso a janela de prévia bloqueie downloads diretos.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <button id="copyHtmlCodeBtn" class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-mono font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+              <span id="copyHtmlBtnText">Copiar Código HTML</span>
+            </button>
+            <button id="downloadIndexHtmlBtn" class="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-mono font-bold text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+              </svg>
+              <span>Baixar index.html</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="exportStatusMsg" class="hidden text-xs font-mono text-emerald-300 bg-emerald-950/60 border border-emerald-500/40 rounded-lg px-3 py-2"></div>
+
+        <div class="bg-black/60 rounded-lg p-2.5 border border-gray-800">
+          <div class="flex items-center justify-between text-[11px] font-mono text-gray-400 mb-1">
+            <span>COMO SALVAR NO COMPUTADOR EM 10 SEGUNDOS:</span>
+            <button id="toggleSourceBoxBtn" class="text-amber-400 hover:underline">Mostrar/Ocultar Código</button>
+          </div>
+          <p class="text-[11px] text-gray-300">
+            1. Clique em <strong>Copiar Código HTML</strong> &rarr; 2. Abra o <strong>Bloco de Notas</strong> &rarr; 3. Pressione <strong>Ctrl + V</strong> &rarr; 4. Salve como <code class="text-amber-400 font-bold">index.html</code> (Tipo: <em>Todos os arquivos</em>).
+          </p>
+          <textarea id="htmlSourceTextarea" readonly class="hidden w-full h-32 mt-2 bg-[#090b0e] text-amber-300 font-mono text-[10px] p-2 rounded border border-gray-700 focus:outline-none select-all"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Elementos de Áudio Ocultos -->
+  <audio id="audioStream" crossorigin="anonymous" preload="none"></audio>
+  <audio id="audioStreamDirect" preload="none"></audio>
+
+  <!-- Rodapé informativo -->
+  <footer class="border-t border-gray-800/80 bg-[#0c0e12] py-3 text-center text-xs text-gray-500 font-mono">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div>AetherWave Tuner DSP v3.0 • Rádios FM Brasil & Internacionais • Edge & Chrome</div>
+      <div class="flex items-center gap-3">
+        <span>Web Audio API</span>
+        <span>•</span>
+        <span>Diretório Global FM</span>
+        <span>•</span>
+        <button id="ambientGenBtn" class="text-amber-500/80 hover:text-amber-400 underline">Modo Sintetizador Ambience Offline</button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script Principal com Arquitetura de Áudio, DSP e Lógica de Sintonia -->
+  <script>
+    const DEFAULT_STATIONS = [
+      {
+        id: 'somafm-bossa',
+        name: 'Bossa Beyond Brasil',
+        freq: 88.5,
+        genre: 'Bossa Nova / Samba-Jazz / MPB',
+        url: 'https://ice1.somafm.com/bossabeyond-128-mp3',
+        location: 'Brasil / Global',
+        region: 'BR'
+      },
+      {
+        id: '89fm-rock',
+        name: '89 FM A Rádio Rock',
+        freq: 89.1,
+        genre: 'Rock Nacional & Internacional',
+        url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/RADIO_89FM_ADP.aac',
+        location: 'São Paulo, SP - Brasil',
+        region: 'BR'
+      },
+      {
+        id: 'antena-1-br',
+        name: 'Antena 1 FM Brasil',
+        freq: 91.3,
+        genre: 'Adult Contemporary / Flashback',
+        url: 'https://antenaone.crossradio.com.br/stream/1;',
+        location: 'São Paulo / Rede Brasil',
+        region: 'BR'
+      },
+      {
+        id: 'kiss-fm-sp',
+        name: 'Kiss FM 92.5',
+        freq: 92.5,
+        genre: 'Classic Rock / Blues Rock',
+        url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/RADIO_KISSFM_ADP.aac',
+        location: 'São Paulo, SP - Brasil',
+        region: 'BR'
+      },
+      {
+        id: 'usp-fm-sp',
+        name: 'Rádio USP FM',
+        freq: 93.7,
+        genre: 'MPB / Chorinho / Cultura / Jazz',
+        url: 'https://flow.emm.usp.br:8007/radiousp-128.mp3',
+        location: 'São Paulo, SP - Brasil',
+        region: 'BR'
+      },
+      {
+        id: 'plaza-one',
+        name: 'Nightwave Plaza',
+        freq: 95.7,
+        genre: 'Vaporwave / Future Funk / Lo-Fi',
+        url: 'https://radio.plaza.one/mp3',
+        location: 'Tóquio, Japão',
+        region: 'INT'
+      },
+      {
+        id: 'hunter-fm-mpb',
+        name: 'Hunter.FM: MPB & Brasil',
+        freq: 96.9,
+        genre: 'Música Popular Brasileira',
+        url: 'https://live.hunter.fm/mpb_high',
+        location: 'Brasília / Rede Web Brasil',
+        region: 'BR'
+      },
+      {
+        id: 'somafm-groovesalad',
+        name: 'SomaFM: Groove Salad',
+        freq: 98.5,
+        genre: 'Chillout / Ambient / Downtempo',
+        url: 'https://ice1.somafm.com/groovesalad-128-mp3',
+        location: 'São Francisco, EUA',
+        region: 'INT'
+      },
+      {
+        id: 'saudade-fm',
+        name: 'Saudade FM 99.7',
+        freq: 99.7,
+        genre: 'Flashback 70s, 80s, 90s & MPB',
+        url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/SAUDADE_FM_ADP.aac',
+        location: 'Santos, SP - Brasil',
+        region: 'BR'
+      },
+      {
+        id: 'jovem-pan-fm',
+        name: 'Jovem Pan FM 100.9',
+        freq: 100.9,
+        genre: 'Pop / Top Hits / Entretenimento',
+        url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/JP_SP_FM_ADP.aac',
+        location: 'São Paulo, SP - Brasil',
+        region: 'BR'
+      },
+      {
+        id: 'fip-paris',
+        name: 'FIP Radio France',
+        freq: 102.1,
+        genre: 'Eclectic / World / Jazz / Chanson',
+        url: 'https://icecast.radiofrance.fr/fip-midfi.mp3',
+        location: 'Paris, França',
+        region: 'INT'
+      },
+      {
+        id: 'alpha-fm-sp',
+        name: 'Alpha FM 103.3',
+        freq: 103.3,
+        genre: 'MPB / Pop Adulto / Smooth',
+        url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/RADIO_ALPHAFM_ADP.aac',
+        location: 'São Paulo, SP - Brasil',
+        region: 'BR'
+      },
+      {
+        id: 'bbc-world',
+        name: 'BBC World Service',
+        freq: 104.5,
+        genre: 'Global News / Documentaries',
+        url: 'https://stream.live.vc.bbcmedia.co.uk/bbc_world_service',
+        location: 'Londres, Reino Unido',
+        region: 'INT'
+      },
+      {
+        id: 'somafm-u80s',
+        name: 'SomaFM: Underground 80s',
+        freq: 106.1,
+        genre: 'New Wave / 80s Synthpop',
+        url: 'https://ice1.somafm.com/u80s-128-mp3',
+        location: 'Londres / EUA',
+        region: 'INT'
+      },
+      {
+        id: 'generative-synth',
+        name: 'AetherWave Synth (Procedural)',
+        freq: 107.8,
+        genre: 'Algorithmic Lo-Fi Synth Offline',
+        url: 'synth://generative',
+        location: 'Processamento Local Edge/Chrome',
+        region: 'INT'
+      }
+    ];
+
+    let stations = [...DEFAULT_STATIONS];
+    let currentStationIndex = 1;
+    let currentRegionFilter = 'ALL';
+    let isPoweredOn = false;
+    let isPlaying = false;
+    let usingDirectStream = false;
+    let visualizerMode = 'bars';
+    let currentToneFilter = 'modern';
+    let isDraggingTuner = false;
+    let targetFrequency = 89.1;
+
+    const audioElement = document.getElementById('audioStream');
+    const audioDirectElement = document.getElementById('audioStreamDirect');
+    const togglePowerBtn = document.getElementById('toggleAudioEngineBtn');
+    const powerLed = document.getElementById('powerLed');
+    const powerText = document.getElementById('powerText');
+    const powerBtnLabel = document.getElementById('powerBtnLabel');
+    const mainFreqDisplay = document.getElementById('mainFrequencyDisplay');
+    const stationNameDisplay = document.getElementById('stationNameDisplay');
+    const streamStatusText = document.getElementById('streamStatusText');
+    const clockDisplay = document.getElementById('clockDisplay');
+    const tunerTrack = document.getElementById('tunerTrack');
+    const tunerNeedle = document.getElementById('tunerNeedle');
+    const btnPlayPause = document.getElementById('btnPlayPause');
+    const playIcon = document.getElementById('playIcon');
+    const pauseIcon = document.getElementById('pauseIcon');
+    const btnPrevStation = document.getElementById('btnPrevStation');
+    const btnNextStation = document.getElementById('btnNextStation');
+    const masterVolumeSlider = document.getElementById('masterVolumeSlider');
+    const volumeValueLabel = document.getElementById('volumeValueLabel');
+    const staticNoiseSlider = document.getElementById('staticNoiseSlider');
+    const staticNoiseLabel = document.getElementById('staticNoiseLabel');
+    const vuNeedleL = document.getElementById('vuNeedleL');
+    const vuNeedleR = document.getElementById('vuNeedleR');
+    const visualizerCanvas = document.getElementById('visualizerCanvas');
+    const canvasCtx = visualizerCanvas.getContext('2d');
+    const stationsListContainer = document.getElementById('stationsListContainer');
+    const presetsButtonContainer = document.getElementById('presetsButtonContainer');
+    const stationPointersContainer = document.getElementById('stationPointersContainer');
+    const addCustomStreamBtn = document.getElementById('addCustomStreamBtn');
+    const customNameInput = document.getElementById('customNameInput');
+    const customUrlInput = document.getElementById('customUrlInput');
+    const customRegionInput = document.getElementById('customRegionInput');
+    const ambientGenBtn = document.getElementById('ambientGenBtn');
+
+    const filterRegionAll = document.getElementById('filterRegionAll');
+    const filterRegionBR = document.getElementById('filterRegionBR');
+    const filterRegionINT = document.getElementById('filterRegionINT');
+    const radioSearchInput = document.getElementById('radioSearchInput');
+    const radioSearchCountry = document.getElementById('radioSearchCountry');
+    const radioSearchBtn = document.getElementById('radioSearchBtn');
+    const searchResultsBox = document.getElementById('searchResultsBox');
+
+    const filterModernBtn = document.getElementById('filterModern');
+    const filterTubeBtn = document.getElementById('filterTube');
+    const filterVinylBtn = document.getElementById('filterVinyl');
+
+    const visModeBars = document.getElementById('visModeBars');
+    const visModeWave = document.getElementById('visModeWave');
+
+    let audioCtx = null;
+    let sourceNode = null;
+    let analyserNode = null;
+    let masterGainNode = null;
+    let bassFilter = null;
+    let trebleFilter = null;
+    let staticNoiseGain = null;
+    let staticNoiseSource = null;
+    let synthInterval = null;
+    let synthGain = null;
+
+    function initWebAudio() {
+      if (audioCtx) return;
+
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+
+      masterGainNode = audioCtx.createGain();
+      masterGainNode.gain.value = parseFloat(masterVolumeSlider.value);
+
+      analyserNode = audioCtx.createAnalyser();
+      analyserNode.fftSize = 256;
+      analyserNode.smoothingTimeConstant = 0.8;
+
+      bassFilter = audioCtx.createBiquadFilter();
+      bassFilter.type = 'lowshelf';
+      bassFilter.frequency.value = 250;
+      bassFilter.gain.value = 0;
+
+      trebleFilter = audioCtx.createBiquadFilter();
+      trebleFilter.type = 'highshelf';
+      trebleFilter.frequency.value = 4000;
+      trebleFilter.gain.value = 0;
+
+      try {
+        sourceNode = audioCtx.createMediaElementSource(audioElement);
+        sourceNode.connect(bassFilter);
+        bassFilter.connect(trebleFilter);
+        trebleFilter.connect(masterGainNode);
+        masterGainNode.connect(analyserNode);
+        analyserNode.connect(audioCtx.destination);
+      } catch (err) {
+        console.warn('MediaElementSource já configurado:', err);
+      }
+
+      audioDirectElement.volume = parseFloat(masterVolumeSlider.value);
+      createStaticNoiseGenerator();
+      requestAnimationFrame(renderAudioFeedback);
+    }
+
+    function createStaticNoiseGenerator() {
+      const bufferSize = audioCtx.sampleRate * 2;
+      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+
+      staticNoiseSource = audioCtx.createBufferSource();
+      staticNoiseSource.buffer = noiseBuffer;
+      staticNoiseSource.loop = true;
+
+      const bandpass = audioCtx.createBiquadFilter();
+      bandpass.type = 'bandpass';
+      bandpass.frequency.value = 2200;
+      bandpass.Q.value = 1.2;
+
+      staticNoiseGain = audioCtx.createGain();
+      staticNoiseGain.gain.value = 0.0;
+
+      staticNoiseSource.connect(bandpass);
+      bandpass.connect(staticNoiseGain);
+      staticNoiseGain.connect(masterGainNode);
+      staticNoiseSource.start(0);
+
+      synthGain = audioCtx.createGain();
+      synthGain.gain.value = 0.0;
+      synthGain.connect(masterGainNode);
+    }
+
+    function playProceduralAmbientChord() {
+      if (!audioCtx || !isPoweredOn) return;
+      const notes = [220, 261.63, 329.63, 392.00, 440, 523.25];
+      const baseFreq = notes[Math.floor(Math.random() * notes.length)];
+
+      const osc1 = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const noteGain = audioCtx.createGain();
+      const noteFilter = audioCtx.createBiquadFilter();
+
+      osc1.type = 'triangle';
+      osc2.type = 'sine';
+      osc1.frequency.value = baseFreq;
+      osc2.frequency.value = baseFreq * 1.5;
+
+      noteFilter.type = 'lowpass';
+      noteFilter.frequency.setValueAtTime(600, audioCtx.currentTime);
+      noteFilter.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 3);
+
+      noteGain.gain.setValueAtTime(0, audioCtx.currentTime);
+      noteGain.gain.linearRampToValueAtTime(0.08, audioCtx.currentTime + 1.5);
+      noteGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 6.0);
+
+      osc1.connect(noteFilter);
+      osc2.connect(noteFilter);
+      noteFilter.connect(noteGain);
+      noteGain.connect(synthGain);
+
+      osc1.start();
+      osc2.start();
+      osc1.stop(audioCtx.currentTime + 6.2);
+      osc2.stop(audioCtx.currentTime + 6.2);
+    }
+
+    function setFrequency(freq, forcePlay = false) {
+      freq = Math.max(88.0, Math.min(108.0, parseFloat(freq.toFixed(1))));
+      targetFrequency = freq;
+      mainFreqDisplay.textContent = freq.toFixed(1);
+
+      const percentage = ((freq - 88.0) / (108.0 - 88.0)) * 100;
+      tunerNeedle.style.left = `${percentage}%`;
+
+      let matchedStation = null;
+      let minDistance = 999;
+
+      stations.forEach(st => {
+        const dist = Math.abs(st.freq - freq);
+        if (dist < minDistance) {
+          minDistance = dist;
+          if (dist <= 0.25) {
+            matchedStation = st;
+          }
+        }
+      });
+
+      if (staticNoiseGain && isPoweredOn) {
+        const noiseBaseLevel = parseFloat(staticNoiseSlider.value);
+        if (matchedStation) {
+          const cleanFactor = minDistance / 0.25;
+          staticNoiseGain.gain.setTargetAtTime(noiseBaseLevel * cleanFactor * 0.35, audioCtx.currentTime, 0.05);
+          document.getElementById('signalQuality').textContent = `SIGNAL: ${Math.round((1 - cleanFactor * 0.4) * 100)}%`;
+        } else {
+          staticNoiseGain.gain.setTargetAtTime(noiseBaseLevel * 0.65, audioCtx.currentTime, 0.05);
+          document.getElementById('signalQuality').textContent = 'SIGNAL: 0% (RUÍDO)';
+        }
+      }
+
+      if (matchedStation) {
+        const stationIdx = stations.indexOf(matchedStation);
+        if (stationIdx !== currentStationIndex || forcePlay) {
+          tuneToStation(stationIdx);
+        }
+      } else {
+        stationNameDisplay.textContent = '--- FORA DE SINTONIA ---';
+        document.getElementById('stationTag').textContent = 'BUSCANDO PORTADORA';
+        document.getElementById('stationTag').className = 'text-xs uppercase font-mono tracking-widest text-amber-500/70';
+        streamStatusText.textContent = 'Gire o dial ou clique em uma rádio do Brasil / Internacional...';
+        
+        if (isPlaying && stations[currentStationIndex].url !== 'synth://generative') {
+          audioElement.pause();
+          audioDirectElement.pause();
+        }
+        if (synthGain) synthGain.gain.value = 0;
+      }
+    }
+
+    function tuneToStation(index) {
+      if (index < 0 || index >= stations.length) return;
+      currentStationIndex = index;
+      const station = stations[index];
+
+      targetFrequency = station.freq;
+      mainFreqDisplay.textContent = station.freq.toFixed(1);
+      stationNameDisplay.textContent = station.name;
+      const flag = station.region === 'BR' ? '🇧🇷 EM SINTONIA • BRASIL' : '🌍 EM SINTONIA • GLOBAL';
+      document.getElementById('stationTag').textContent = flag;
+      document.getElementById('stationTag').className = 'text-xs uppercase font-mono tracking-widest text-emerald-400';
+      streamStatusText.textContent = `${station.genre} • ${station.location}`;
+
+      const percentage = ((station.freq - 88.0) / (108.0 - 88.0)) * 100;
+      tunerNeedle.style.left = `${percentage}%`;
+
+      updateStationListSelection();
+
+      if (isPoweredOn) {
+        playCurrentStation();
+      }
+    }
+
+    function stopAllStreams() {
+      audioElement.pause();
+      audioElement.removeAttribute('src');
+      audioDirectElement.pause();
+      audioDirectElement.removeAttribute('src');
+      if (synthInterval) {
+        clearInterval(synthInterval);
+        synthInterval = null;
+      }
+      if (synthGain) synthGain.gain.value = 0;
+    }
+
+    function playCurrentStation() {
+      const station = stations[currentStationIndex];
+      if (!station) return;
+
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      stopAllStreams();
+
+      if (station.url === 'synth://generative') {
+        usingDirectStream = false;
+        if (synthGain) synthGain.gain.value = 1.0;
+        playProceduralAmbientChord();
+        synthInterval = setInterval(playProceduralAmbientChord, 4500);
+        isPlaying = true;
+        updatePlayButtons(true);
+        streamStatusText.textContent = 'Tocando Síntese Lo-Fi Infinita (Local DSP)';
+        return;
+      }
+
+      streamStatusText.textContent = `Conectando a ${station.name}...`;
+      usingDirectStream = false;
+      audioElement.src = station.url;
+
+      const playPromise = audioElement.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            isPlaying = true;
+            usingDirectStream = false;
+            updatePlayButtons(true);
+            streamStatusText.textContent = `Ao vivo • ${station.genre} (${station.location})`;
+          })
+          .catch(() => {
+            playViaDirectElement(station);
+          });
+      }
+    }
+
+    function playViaDirectElement(station) {
+      audioElement.pause();
+      audioElement.removeAttribute('src');
+      usingDirectStream = true;
+      audioDirectElement.src = station.url;
+      audioDirectElement.volume = parseFloat(masterVolumeSlider.value);
+
+      const directPromise = audioDirectElement.play();
+      if (directPromise !== undefined) {
+        directPromise
+          .then(() => {
+            isPlaying = true;
+            updatePlayButtons(true);
+            streamStatusText.textContent = `Ao vivo (Direct FM Stream) • ${station.genre} • ${station.location}`;
+          })
+          .catch(err => {
+            console.warn('Erro ao conectar stream direto:', err);
+            isPlaying = false;
+            updatePlayButtons(false);
+            streamStatusText.textContent = 'Estação temporariamente indisponível. Selecione outra ou use a busca.';
+          });
+      }
+    }
+
+    function pausePlayback() {
+      stopAllStreams();
+      isPlaying = false;
+      updatePlayButtons(false);
+      streamStatusText.textContent = 'Transmissão em Pausa';
+    }
+
+    function togglePower() {
+      isPoweredOn = !isPoweredOn;
+
+      if (isPoweredOn) {
+        initWebAudio();
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        powerLed.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-md shadow-emerald-400';
+        powerText.textContent = 'ONLINE';
+        powerText.className = 'font-mono text-emerald-400 font-bold';
+        powerBtnLabel.textContent = 'Desligar';
+        togglePowerBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-600/30 transition-all flex items-center gap-1.5';
+
+        tuneToStation(currentStationIndex);
+      } else {
+        pausePlayback();
+        if (staticNoiseGain) {
+          staticNoiseGain.gain.value = 0;
+        }
+
+        powerLed.className = 'w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm shadow-red-500';
+        powerText.textContent = 'STANDBY';
+        powerText.className = 'font-mono text-gray-400';
+        powerBtnLabel.textContent = 'Ligar Receptor';
+        togglePowerBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider bg-amber-500 hover:bg-amber-400 text-black shadow-md shadow-amber-500/30 transition-all flex items-center gap-1.5';
+        
+        stationNameDisplay.textContent = 'RECEPTOR EM STANDBY';
+        document.getElementById('stationTag').textContent = 'DESLIGADO';
+        streamStatusText.textContent = 'Pressione "Ligar Receptor" para sintonizar rádios do Brasil e do mundo.';
+        
+        vuNeedleL.style.transform = 'rotate(-38deg)';
+        vuNeedleR.style.transform = 'rotate(-38deg)';
+      }
+    }
+
+    function updatePlayButtons(playing) {
+      if (playing) {
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+      } else {
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+      }
+    }
+
+    function renderAudioFeedback() {
+      requestAnimationFrame(renderAudioFeedback);
+
+      if (!isPoweredOn || !analyserNode) {
+        canvasCtx.fillStyle = '#06080a';
+        canvasCtx.fillRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+        return;
+      }
+
+      if (visualizerCanvas.width !== visualizerCanvas.clientWidth || visualizerCanvas.height !== visualizerCanvas.clientHeight) {
+        visualizerCanvas.width = visualizerCanvas.clientWidth;
+        visualizerCanvas.height = visualizerCanvas.clientHeight;
+      }
+
+      const bufferLength = analyserNode.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      analyserNode.getByteFrequencyData(dataArray);
+
+      let sum = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        sum += dataArray[i];
+      }
+
+      const timeNow = performance.now() * 0.005;
+      if (isPlaying && usingDirectStream && sum < 50) {
+        for (let i = 0; i < bufferLength; i++) {
+          const wave = Math.sin(timeNow * 2 + i * 0.18) * 0.5 + 0.5;
+          const bassBoost = Math.max(0, 1 - (i / (bufferLength * 0.7)));
+          dataArray[i] = Math.min(255, Math.floor((wave * 150 + Math.random() * 55) * bassBoost * parseFloat(masterVolumeSlider.value)));
+          sum += dataArray[i];
+        }
+      }
+
+      const averageLevel = sum / bufferLength;
+      const normalizedLevel = isPlaying ? Math.min(1, (averageLevel / 145)) : 0;
+
+      const jitterL = (Math.random() - 0.5) * 4;
+      const jitterR = (Math.random() - 0.5) * 4;
+      const angleL = -35 + (normalizedLevel * 70) + jitterL;
+      const angleR = -35 + (normalizedLevel * 68) + jitterR;
+
+      vuNeedleL.style.transform = `rotate(${Math.max(-38, Math.min(36, angleL))}deg)`;
+      vuNeedleR.style.transform = `rotate(${Math.max(-38, Math.min(36, angleR))}deg)`;
+
+      const width = visualizerCanvas.width;
+      const height = visualizerCanvas.height;
+
+      canvasCtx.fillStyle = '#06080a';
+      canvasCtx.fillRect(0, 0, width, height);
+
+      if (visualizerMode === 'bars') {
+        const barCount = 36;
+        const barWidth = (width / barCount) - 2;
+        const step = Math.floor(bufferLength / barCount);
+
+        for (let i = 0; i < barCount; i++) {
+          const val = dataArray[i * step] || 0;
+          const barHeight = (val / 255) * (height - 6);
+          const x = i * (barWidth + 2);
+          const y = height - barHeight;
+
+          const gradient = canvasCtx.createLinearGradient(0, height, 0, 0);
+          gradient.addColorStop(0, '#f59e0b');
+          gradient.addColorStop(0.7, '#fbbf24');
+          gradient.addColorStop(1, '#34d399');
+
+          canvasCtx.fillStyle = gradient;
+          canvasCtx.fillRect(x, y, barWidth, barHeight);
+        }
+      } else {
+        const timeData = new Uint8Array(analyserNode.fftSize);
+        analyserNode.getByteTimeDomainData(timeData);
+
+        canvasCtx.lineWidth = 2;
+        canvasCtx.strokeStyle = '#34d399';
+        canvasCtx.shadowBlur = 6;
+        canvasCtx.shadowColor = '#10b981';
+        canvasCtx.beginPath();
+
+        const sliceWidth = width * 1.0 / analyserNode.fftSize;
+        let x = 0;
+
+        for (let i = 0; i < analyserNode.fftSize; i++) {
+          let v = timeData[i] / 128.0;
+          if (isPlaying && usingDirectStream && Math.abs(v - 1.0) < 0.01) {
+            v = 1.0 + Math.sin(timeNow * 3 + i * 0.15) * 0.35 * parseFloat(masterVolumeSlider.value);
+          }
+          const y = v * height / 2;
+
+          if (i === 0) {
+            canvasCtx.moveTo(x, y);
+          } else {
+            canvasCtx.lineTo(x, y);
+          }
+          x += sliceWidth;
+        }
+
+        canvasCtx.lineTo(width, height / 2);
+        canvasCtx.stroke();
+        canvasCtx.shadowBlur = 0;
+      }
+    }
+
+    function setAcousticFilter(mode) {
+      currentToneFilter = mode;
+      filterModernBtn.className = 'preset-btn px-2 py-1 text-[11px] rounded bg-gray-800 hover:bg-gray-700 text-gray-300 font-mono transition';
+      filterTubeBtn.className = 'preset-btn px-2 py-1 text-[11px] rounded bg-gray-800 hover:bg-gray-700 text-gray-300 font-mono transition';
+      filterVinylBtn.className = 'preset-btn px-2 py-1 text-[11px] rounded bg-gray-800 hover:bg-gray-700 text-gray-300 font-mono transition';
+
+      if (!bassFilter || !trebleFilter) return;
+
+      if (mode === 'modern') {
+        filterModernBtn.className = 'preset-btn px-2 py-1 text-[11px] rounded bg-amber-500/20 text-amber-400 border border-amber-500/40 font-mono transition';
+        bassFilter.gain.setTargetAtTime(1.5, audioCtx.currentTime, 0.1);
+        trebleFilter.gain.setTargetAtTime(1.0, audioCtx.currentTime, 0.1);
+        document.getElementById('stereoMode').textContent = 'STEREO-DSP';
+      } else if (mode === 'tube') {
+        filterTubeBtn.className = 'preset-btn px-2 py-1 text-[11px] rounded bg-amber-500/20 text-amber-400 border border-amber-500/40 font-mono transition';
+        bassFilter.gain.setTargetAtTime(6.0, audioCtx.currentTime, 0.1);
+        trebleFilter.gain.setTargetAtTime(-3.5, audioCtx.currentTime, 0.1);
+        document.getElementById('stereoMode').textContent = 'WARM TUBE 12AX7';
+      } else if (mode === 'vinyl') {
+        filterVinylBtn.className = 'preset-btn px-2 py-1 text-[11px] rounded bg-amber-500/20 text-amber-400 border border-amber-500/40 font-mono transition';
+        bassFilter.gain.setTargetAtTime(4.0, audioCtx.currentTime, 0.1);
+        trebleFilter.gain.setTargetAtTime(-6.0, audioCtx.currentTime, 0.1);
+        document.getElementById('stereoMode').textContent = 'VINYL RIAA EQ';
+      }
+    }
+
+    function setRegionFilter(region) {
+      currentRegionFilter = region;
+      const activeClass = 'px-2.5 py-1 rounded text-[11px] font-mono font-bold bg-amber-500 text-black transition';
+      const inactiveClass = 'px-2.5 py-1 rounded text-[11px] font-mono text-gray-300 hover:text-white transition';
+
+      filterRegionAll.className = region === 'ALL' ? activeClass : inactiveClass;
+      filterRegionBR.className = region === 'BR' ? activeClass : inactiveClass;
+      filterRegionINT.className = region === 'INT' ? activeClass : inactiveClass;
+
+      renderStationsList();
+    }
+
+    filterRegionAll.addEventListener('click', () => setRegionFilter('ALL'));
+    filterRegionBR.addEventListener('click', () => setRegionFilter('BR'));
+    filterRegionINT.addEventListener('click', () => setRegionFilter('INT'));
+
+    function renderStationsList() {
+      stationsListContainer.innerHTML = '';
+      const filtered = stations.filter(st => currentRegionFilter === 'ALL' || st.region === currentRegionFilter);
+      document.getElementById('stationsCount').textContent = `${filtered.length} canais`;
+
+      filtered.forEach((st) => {
+        const realIdx = stations.indexOf(st);
+        const item = document.createElement('div');
+        const isActive = realIdx === currentStationIndex;
+        const badge = st.region === 'BR' ? '🇧🇷' : '🌍';
+
+        item.className = `p-2.5 rounded-lg border cursor-pointer transition flex items-center justify-between text-xs ${
+          isActive 
+            ? 'bg-amber-500/15 border-amber-500/60 text-white shadow-sm' 
+            : 'bg-[#15191f] border-gray-800 hover:border-gray-600 text-gray-300'
+        }`;
+
+        item.innerHTML = `
+          <div class="truncate mr-2">
+            <div class="font-bold font-sans flex items-center gap-1.5">
+              ${isActive ? '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>' : ''}
+              <span>${badge}</span>
+              <span class="truncate">${st.name}</span>
+            </div>
+            <div class="text-[11px] text-gray-400 font-mono truncate">${st.genre} • ${st.location}</div>
+          </div>
+          <span class="font-mono text-amber-400 font-bold shrink-0 bg-black/50 px-2 py-0.5 rounded border border-gray-800">
+            ${st.freq.toFixed(1)}
+          </span>
+        `;
+
+        item.addEventListener('click', () => {
+          if (!isPoweredOn) togglePower();
+          tuneToStation(realIdx);
+        });
+
+        stationsListContainer.appendChild(item);
+      });
+
+      renderPointersOnTunerTrack();
+    }
+
+    function renderPresets() {
+      presetsButtonContainer.innerHTML = '';
+      const presetStations = stations.slice(0, 6);
+      for (let i = 0; i < 6; i++) {
+        const btn = document.createElement('button');
+        const st = presetStations[i];
+        btn.className = 'h-9 rounded bg-[#1e232a] hover:bg-amber-500 hover:text-black border border-gray-700 font-mono text-xs font-bold transition flex flex-col items-center justify-center';
+        btn.innerHTML = `<span>P${i + 1}</span><span class="text-[9px] text-gray-400 font-normal">${st ? st.freq : '--'}</span>`;
+        btn.title = st ? `${st.name} (${st.freq} MHz)` : 'Vazio';
+
+        btn.addEventListener('click', () => {
+          if (!isPoweredOn) togglePower();
+          if (st) tuneToStation(stations.indexOf(st));
+        });
+
+        presetsButtonContainer.appendChild(btn);
+      }
+    }
+
+    function renderPointersOnTunerTrack() {
+      stationPointersContainer.innerHTML = '';
+      stations.forEach(st => {
+        const percentage = ((st.freq - 88.0) / (108.0 - 88.0)) * 100;
+        const mark = document.createElement('div');
+        mark.className = st.region === 'BR'
+          ? 'absolute top-0 bottom-0 w-0.5 bg-emerald-400/50 pointer-events-none'
+          : 'absolute top-0 bottom-0 w-0.5 bg-amber-400/40 pointer-events-none';
+        mark.style.left = `${percentage}%`;
+        stationPointersContainer.appendChild(mark);
+      });
+    }
+
+    function updateStationListSelection() {
+      renderStationsList();
+    }
+
+    async function searchOnlineRadios() {
+      const query = radioSearchInput.value.trim();
+      const country = radioSearchCountry.value;
+
+      searchResultsBox.classList.remove('hidden');
+      searchResultsBox.innerHTML = '<div class="text-xs font-mono text-amber-400 p-2">Sintonizando diretório de rádios FM/Web...</div>';
+
+      try {
+        const params = new URLSearchParams({
+          limit: '12',
+          hidebroken: 'true',
+          order: 'clickcount',
+          reverse: 'true'
+        });
+        if (query) params.append('name', query);
+        if (country) params.append('countrycode', country);
+
+        const response = await fetch(`https://de1.api.radio-browser.info/json/stations/search?${params.toString()}`);
+        const data = await response.json();
+
+        if (!data || data.length === 0) {
+          searchResultsBox.innerHTML = '<div class="text-xs font-mono text-gray-400 p-2">Nenhuma rádio encontrada com esse termo. Tente outro nome.</div>';
+          return;
+        }
+
+        searchResultsBox.innerHTML = '';
+        data.forEach(item => {
+          if (!item.url_resolved) return;
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between bg-[#161b22] hover:bg-[#1f2630] p-2 rounded border border-gray-800 text-xs transition';
+          const isBR = item.countrycode === 'BR';
+          row.innerHTML = `
+            <div class="truncate mr-2">
+              <span class="font-bold text-white">${isBR ? '🇧🇷' : '🌍'} ${item.name}</span>
+              <span class="text-[10px] text-gray-400 font-mono block truncate">${item.state || item.country || 'Online'} • ${item.tags || 'FM Stream'}</span>
+            </div>
+            <button class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-black font-mono font-bold rounded text-[10px] shrink-0">
+              + Sintonizar
+            </button>
+          `;
+
+          row.querySelector('button').addEventListener('click', () => {
+            const randomFreq = parseFloat((88.2 + (Math.random() * 19.4)).toFixed(1));
+            const newSt = {
+              id: `rb-${Date.now()}-${Math.random()}`,
+              name: item.name.trim(),
+              freq: randomFreq,
+              genre: (item.tags ? item.tags.split(',').slice(0, 2).join(' / ') : 'FM / Web Radio'),
+              url: item.url_resolved,
+              location: `${item.state ? item.state + ', ' : ''}${item.country || 'Global'}`,
+              region: isBR ? 'BR' : 'INT'
+            };
+
+            stations.push(newSt);
+            stations.sort((a, b) => a.freq - b.freq);
+            renderStationsList();
+            renderPresets();
+
+            if (!isPoweredOn) togglePower();
+            tuneToStation(stations.indexOf(newSt));
+          });
+
+          searchResultsBox.appendChild(row);
+        });
+      } catch (err) {
+        searchResultsBox.innerHTML = '<div class="text-xs font-mono text-red-400 p-2">Erro ao consultar diretório online. Verifique sua conexão.</div>';
+      }
+    }
+
+    radioSearchBtn.addEventListener('click', searchOnlineRadios);
+    radioSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') searchOnlineRadios();
+    });
+
+    function handleTunerTrackInteraction(e) {
+      const rect = tunerTrack.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const offsetX = Math.max(0, Math.min(rect.width, clientX - rect.left));
+      const percentage = offsetX / rect.width;
+      const targetFreq = 88.0 + (percentage * (108.0 - 88.0));
+      
+      setFrequency(targetFreq, false);
+    }
+
+    tunerTrack.addEventListener('mousedown', (e) => {
+      isDraggingTuner = true;
+      if (!isPoweredOn) togglePower();
+      handleTunerTrackInteraction(e);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (isDraggingTuner) {
+        handleTunerTrackInteraction(e);
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isDraggingTuner) {
+        isDraggingTuner = false;
+        setFrequency(targetFrequency, true);
+      }
+    });
+
+    tunerTrack.addEventListener('touchstart', (e) => {
+      isDraggingTuner = true;
+      if (!isPoweredOn) togglePower();
+      handleTunerTrackInteraction(e);
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+      if (isDraggingTuner) {
+        handleTunerTrackInteraction(e);
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', () => {
+      if (isDraggingTuner) {
+        isDraggingTuner = false;
+        setFrequency(targetFrequency, true);
+      }
+    });
+
+    togglePowerBtn.addEventListener('click', togglePower);
+
+    btnPlayPause.addEventListener('click', () => {
+      if (!isPoweredOn) {
+        togglePower();
+        return;
+      }
+      if (isPlaying) {
+        pausePlayback();
+      } else {
+        playCurrentStation();
+      }
+    });
+
+    btnNextStation.addEventListener('click', () => {
+      if (!isPoweredOn) togglePower();
+      let nextIndex = (currentStationIndex + 1) % stations.length;
+      tuneToStation(nextIndex);
+    });
+
+    btnPrevStation.addEventListener('click', () => {
+      if (!isPoweredOn) togglePower();
+      let prevIndex = (currentStationIndex - 1 + stations.length) % stations.length;
+      tuneToStation(prevIndex);
+    });
+
+    masterVolumeSlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      volumeValueLabel.textContent = `${Math.round(val * 100)}%`;
+      if (masterGainNode) {
+        masterGainNode.gain.setTargetAtTime(val, audioCtx.currentTime, 0.05);
+      }
+      audioElement.volume = val;
+      audioDirectElement.volume = val;
+    });
+
+    staticNoiseSlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      staticNoiseLabel.textContent = `${Math.round(val * 100)}%`;
+      setFrequency(targetFrequency);
+    });
+
+    visModeBars.addEventListener('click', () => {
+      visualizerMode = 'bars';
+      visModeBars.className = 'hover:text-amber-300 font-bold text-amber-400';
+      visModeWave.className = 'hover:text-amber-300 text-amber-500/50';
+    });
+
+    visModeWave.addEventListener('click', () => {
+      visualizerMode = 'wave';
+      visModeWave.className = 'hover:text-amber-300 font-bold text-amber-400';
+      visModeBars.className = 'hover:text-amber-300 text-amber-500/50';
+    });
+
+    filterModernBtn.addEventListener('click', () => setAcousticFilter('modern'));
+    filterTubeBtn.addEventListener('click', () => setAcousticFilter('tube'));
+    filterVinylBtn.addEventListener('click', () => setAcousticFilter('vinyl'));
+
+    ambientGenBtn.addEventListener('click', () => {
+      if (!isPoweredOn) togglePower();
+      setFrequency(107.8, true);
+    });
+
+    addCustomStreamBtn.addEventListener('click', () => {
+      const name = customNameInput.value.trim() || 'Rádio Personalizada';
+      const url = customUrlInput.value.trim();
+      const region = customRegionInput.value || 'BR';
+
+      if (!url) {
+        customUrlInput.classList.add('border-red-500');
+        return;
+      }
+      customUrlInput.classList.remove('border-red-500');
+
+      const randomFreq = parseFloat((89.0 + (Math.random() * 18.0)).toFixed(1));
+
+      const newStation = {
+        id: `custom-${Date.now()}`,
+        name: name,
+        freq: randomFreq,
+        genre: 'Stream Customizado pelo Usuário',
+        url: url,
+        location: region === 'BR' ? 'Brasil (Custom)' : 'Internacional (Custom)',
+        region: region
+      };
+
+      stations.push(newStation);
+      stations.sort((a, b) => a.freq - b.freq);
+
+      customNameInput.value = '';
+      customUrlInput.value = '';
+
+      renderStationsList();
+      renderPresets();
+
+      if (!isPoweredOn) togglePower();
+      const newIdx = stations.indexOf(newStation);
+      tuneToStation(newIdx);
+    });
+
+    function updateClock() {
+      const now = new Date();
+      clockDisplay.textContent = now.toTimeString().split(' ')[0];
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    renderStationsList();
+    renderPresets();
+    setFrequency(89.1, false);
+
+    // --- EXPORTAÇÃO E CÓPIA DO INDEX.HTML ---
+    const publishModal = document.getElementById('publishModal');
+    const openPublishModalBtn = document.getElementById('openPublishModalBtn');
+    const closePublishModalBtn = document.getElementById('closePublishModalBtn');
+    const downloadIndexHtmlBtn = document.getElementById('downloadIndexHtmlBtn');
+    const copyHtmlCodeBtn = document.getElementById('copyHtmlCodeBtn');
+    const copyHtmlBtnText = document.getElementById('copyHtmlBtnText');
+    const exportStatusMsg = document.getElementById('exportStatusMsg');
+    const htmlSourceTextarea = document.getElementById('htmlSourceTextarea');
+    const toggleSourceBoxBtn = document.getElementById('toggleSourceBoxBtn');
+
+    function generateCleanHtmlSource() {
+      const clone = document.documentElement.cloneNode(true);
+      const modalInClone = clone.querySelector('#publishModal');
+      if (modalInClone) {
+        modalInClone.classList.add('hidden');
+        modalInClone.classList.remove('flex');
+      }
+      const statusInClone = clone.querySelector('#exportStatusMsg');
+      if (statusInClone) {
+        statusInClone.classList.add('hidden');
+      }
+      const textareaInClone = clone.querySelector('#htmlSourceTextarea');
+      if (textareaInClone) {
+        textareaInClone.value = '';
+        textareaInClone.textContent = '';
+        textareaInClone.classList.add('hidden');
+      }
+      return '<!DOCTYPE html>\n' + clone.outerHTML;
+    }
+
+    function copyFullHtmlToClipboard() {
+      const htmlContent = generateCleanHtmlSource();
+      htmlSourceTextarea.value = htmlContent;
+
+      const tempInput = document.createElement('textarea');
+      tempInput.value = htmlContent;
+      tempInput.style.position = 'fixed';
+      tempInput.style.opacity = '0';
+      document.body.appendChild(tempInput);
+      tempInput.focus();
+      tempInput.select();
+
+      let copied = false;
+      try {
+        copied = document.execCommand('copy');
+      } catch (err) {
+        copied = false;
+      }
+      document.body.removeChild(tempInput);
+
+      if (copied) {
+        copyHtmlBtnText.textContent = 'Código Copiado!';
+        exportStatusMsg.textContent = '✓ Código HTML copiado com sucesso! Abra o Bloco de Notas, cole (Ctrl+V) e salve como index.html.';
+        exportStatusMsg.classList.remove('hidden');
+        setTimeout(() => {
+          copyHtmlBtnText.textContent = 'Copiar Código HTML';
+        }, 3500);
+      } else {
+        htmlSourceTextarea.classList.remove('hidden');
+        htmlSourceTextarea.select();
+        exportStatusMsg.textContent = 'Pressione Ctrl+C para copiar o código selecionado abaixo.';
+        exportStatusMsg.classList.remove('hidden');
+      }
+    }
+
+    openPublishModalBtn.addEventListener('click', () => {
+      publishModal.classList.remove('hidden');
+      publishModal.classList.add('flex');
+      htmlSourceTextarea.value = generateCleanHtmlSource();
+    });
+
+    closePublishModalBtn.addEventListener('click', () => {
+      publishModal.classList.add('hidden');
+      publishModal.classList.remove('flex');
+    });
+
+    publishModal.addEventListener('click', (e) => {
+      if (e.target === publishModal) {
+        publishModal.classList.add('hidden');
+        publishModal.classList.remove('flex');
+      }
+    });
+
+    copyHtmlCodeBtn.addEventListener('click', copyFullHtmlToClipboard);
+
+    toggleSourceBoxBtn.addEventListener('click', () => {
+      htmlSourceTextarea.value = generateCleanHtmlSource();
+      htmlSourceTextarea.classList.toggle('hidden');
+      if (!htmlSourceTextarea.classList.contains('hidden')) {
+        htmlSourceTextarea.select();
+      }
+    });
+
+    downloadIndexHtmlBtn.addEventListener('click', () => {
+      const htmlContent = generateCleanHtmlSource();
+      copyFullHtmlToClipboard();
+
+      try {
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'index.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch (e) {
+        // Fallback já garantido pela cópia automática
+      }
+    });
+  </script>
+</body>
+</html>
+```
